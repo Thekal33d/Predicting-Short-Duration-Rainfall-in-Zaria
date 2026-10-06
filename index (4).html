@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zaria Rainfall Predictor | ML + CMIP6 Scenarios</title>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--tx:#13203a;--mut:#5c6985;--ac:#2b5c8f;--ac2:#e07a5f;--r:#d62728;--bad:#c62828;--bd:#dfe4ee}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1524;--card:#17213a;--tx:#e8edf7;--mut:#9aa7c4;--ac:#6ea8e6;--ac2:#f09a82;--r:#ff7070;--bad:#ff7070;--bd:#28365a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:linear-gradient(135deg,#12305c,#1f4e8c);color:#fff;padding:26px 16px 20px}
+.w{max-width:1000px;margin:0 auto}header h1{font-size:1.4rem;margin:0 0 6px;line-height:1.25}header p{margin:0;opacity:.85;font-size:.88rem}
+main{max-width:1000px;margin:0 auto;padding:16px}
+nav{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}nav button{background:var(--card);color:var(--tx);border:1px solid var(--bd);padding:8px 16px;border-radius:20px;cursor:pointer;font-size:.9rem}nav button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+h2{font-size:1rem;margin:0 0 10px}.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.k{background:var(--bg);border-radius:10px;padding:12px}.k b{display:block;font-size:1.3rem}.k span{font-size:.78rem;color:var(--mut)}
+label{font-size:.8rem;color:var(--mut);display:block}input{width:100%;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:1rem}
+button.p{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 18px;margin-top:12px;cursor:pointer;font-size:1rem}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.84rem;white-space:nowrap}th,td{padding:7px 9px;border-bottom:1px solid var(--bd);text-align:right}th:first-child,td:first-child{text-align:left}tr.row{cursor:pointer}tr.row:hover,tr.sel{background:var(--bg)}
+.tag{padding:2px 8px;border-radius:10px;font-size:.75rem;color:#fff}.wet{background:var(--ac)}.dry{background:#8591ad}.ext{background:var(--bad)}
+.note{color:var(--mut);font-size:.8rem}.err{color:var(--bad)}.hid{display:none}
+.bars{display:flex;align-items:flex-end;gap:3px;height:100px;margin:8px 0 2px}.bars div{flex:1;background:var(--ac);border-radius:3px 3px 0 0;min-height:2px}.bars div.pst{opacity:.5}
+.hb{display:grid;grid-template-columns:170px 1fr;gap:8px;align-items:center;margin:6px 0;font-size:.84rem}.hb i{display:block;height:9px;border-radius:5px;margin:2px 0}
+svg{width:100%;height:auto}
+</style></head><body>
+<header><div class="w"><h1>Predicting Short-Duration Rainfall Events under Rising Temperatures</h1>
+<p>Machine learning with meteorological data and CMIP6 climate scenarios · Zaria, Nigeria (11.11°N, 7.72°E)</p></div></header>
+<main>
+<div class="card" id="status">Loading trained models…</div>
+<nav><button class="on" data-t="daily">Daily forecast</button><button data-t="manual">Manual prediction</button><button data-t="proj">Climate projections</button><button data-t="drv">Predictor importance</button><button data-t="about">Method &amp; limits</button></nav>
+
+<section id="daily"><div class="card"><h2>Selected day</h2><div class="g" id="sel"></div><div class="bars" id="bars"></div><div class="note">Rain probability by day (faded = past days). Click a row to inspect.</div></div>
+<div class="card"><h2>Daily predictions (7 days back, 16 days ahead)</h2><div class="sc"><table id="tbl"></table></div><p class="note" id="dnote"></p></div></section>
+
+<section id="manual" class="hid"><div class="card"><h2>Enter daily mean conditions</h2><div class="g">
+<div><label>Temperature (°C)<input id="m0" type="number" value="27" step="0.1"></label></div>
+<div><label>Relative humidity (%)<input id="m1" type="number" value="75"></label></div>
+<div><label>Surface pressure (kPa)<input id="m2" type="number" value="93.9" step="0.1"></label></div>
+<div><label>Specific humidity (g/kg)<input id="m3" type="number" value="15" step="0.1"></label></div>
+<div><label>Wind speed at 2 m (m/s)<input id="m4" type="number" value="2" step="0.1"></label></div>
+<div><label>Wind direction (°)<input id="m5" type="number" value="225"></label></div></div>
+<button class="p" onclick="manual()">Predict</button><div class="g" id="mout" style="margin-top:14px"></div></div></section>
+
+<section id="proj" class="hid"><div class="card"><h2>Projected annual rainfall by horizon</h2><div id="chart"></div></div>
+<div class="card"><h2>CMIP6 + ML projection summary</h2><div class="sc"><table id="ptbl"></table></div>
+<div class="g" id="chg" style="margin-top:12px"></div><p class="note" id="pnote"></p></div></section>
+
+<section id="drv" class="hid"><div class="card"><h2>Relative importance of predictors (%)</h2><div id="imp"></div>
+<p class="note"><span style="color:var(--ac)">■</span> Rainfall occurrence (rain vs dry) &nbsp; <span style="color:var(--ac2)">■</span> Rainfall intensity (wet days)</p></div></section>
+
+<section id="about" class="hid"><div class="card"><h2>Method</h2>
+<p><b>Two-stage model.</b> A Random Forest classifier (best of four by F1) estimates the probability of a wet day (≥ 1 mm, WMO threshold). For wet days, an Extra Trees regressor trained on log-transformed rainfall predicts intensity, calibrated by empirical quantile mapping. Features: temperature, relative humidity, surface pressure, specific humidity, wind speed and direction, moisture flux and thermal instability.</p>
+<p><b>Live inputs.</b> Daily means from Open-Meteo; specific humidity derived from dew point and pressure; 10 m wind scaled to 2 m (×0.72).</p>
+<p><b>Scenarios.</b> SSP2-4.5 and SSP5-8.5 projections come from the study's CMIP6-ML pipeline (regional warming rates with Clausius–Clapeyron moisture scaling).</p>
+<h2 style="margin-top:14px">Limitations</h2>
+<p class="note">• Occurrence is predicted well (ROC-AUC ≈ 0.94), but daily rainfall <i>amount</i> has little skill from these predictors alone (R² ≈ 0.01); treat intensity as a typical value for a wet day, not a precise forecast.<br>
+• Tree models cannot extrapolate beyond the conditions seen in training, so predicted intensities are compressed and extreme events are under-represented.<br>
+• Projected anomalies are relative to the observed baseline and include model bias; the change from near-term to late-century (shown under Projections) isolates the scenario-driven signal.<br>
+• Live inputs come from a different source than the training data. This site provides statistical estimates, not official forecasts.</p></div></section>
+</main>
+<script>
+const $=id=>document.getElementById(id),f1=(v,d=1)=>(+v).toFixed(d);
+let M=null,days=[];
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));['daily','manual','proj','drv','about'].forEach(s=>$(s).classList.toggle('hid',s!==b.dataset.t))});
+
+function ev(T,x){let n=0;while(T.l[n]!==-1)n=x[T.f[n]]<=T.t[n]?T.l[n]:T.r[n];return T.v[n]}
+function interp(x,xs,ys){if(x<=xs[0])return ys[0];if(x>=xs[xs.length-1])return ys[ys.length-1];let lo=0,hi=xs.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(xs[m]<=x)lo=m;else hi=m}const d=xs[hi]-xs[lo];return d?ys[lo]+(ys[hi]-ys[lo])*(x-xs[lo])/d:ys[hi]}
+function model(T,RH,P,Q,W,WD){
+ const raw=[T,RH,P,Q,W,WD,Q*W,T*RH],x=raw.map((v,i)=>(v-M.scaler.mean[i])/M.scaler.scale[i]);
+ const p=M.occurrence.reduce((s,t)=>s+ev(t,x),0)/M.occurrence.length;
+ const lg=M.intensity.reduce((s,t)=>s+ev(t,x),0)/M.intensity.length;
+ const mm=Math.max(0,interp(Math.expm1(lg),M.calibration.x,M.calibration.y));
+ return{p,mm,wet:p>=0.5,ext:p>=0.5&&mm>=M.meta.p95}}
+function cards(el,r){$(el).innerHTML=`<div class="k"><b>${f1(r.p*100,0)}%</b><span>Rain probability</span></div><div class="k"><b>${r.wet?'Wet day':'Dry day'}</b><span>Occurrence (≥1 mm)</span></div><div class="k"><b>${r.wet?'~'+f1(r.mm)+' mm':'—'}</b><span>Typical wet-day amount (low confidence)</span></div><div class="k"><b class="${r.ext?'err':''}">${r.ext?'Heavy':'Normal'}</b><span>Heavy ≥ ${f1(M.meta.p95)} mm (95th pct.)</span></div>`}
+function manual(){cards('mout',model(...[0,1,2,3,4,5].map(i=>+$('m'+i).value)))}
+function pick(i){const d=days[i];cards('sel',d.r);$('sel').insertAdjacentHTML('afterbegin',`<div class="k"><b>${d.date}</b><span>${d.nwp!=null?'Weather-model rain: '+f1(d.nwp)+' mm':''}</span></div>`);document.querySelectorAll('tr.row').forEach((r,j)=>r.classList.toggle('sel',j===i))}
+function renderDaily(){$('tbl').innerHTML='<tr><th>Date</th><th>T °C</th><th>RH %</th><th>P kPa</th><th>q g/kg</th><th>Wind m/s</th><th>P(rain)</th><th>Outcome</th><th>Amount mm</th><th>Weather model mm</th></tr>'+
+ days.map((d,i)=>`<tr class="row" onclick="pick(${i})"><td>${d.date}</td><td>${f1(d.T)}</td><td>${f1(d.RH,0)}</td><td>${f1(d.P)}</td><td>${f1(d.Q)}</td><td>${f1(d.W)}</td><td>${f1(d.r.p*100,0)}%</td><td><span class="tag ${d.r.ext?'ext':d.r.wet?'wet':'dry'}">${d.r.ext?'Heavy':d.r.wet?'Wet':'Dry'}</span></td><td>${d.r.wet?f1(d.r.mm):'—'}</td><td>${d.nwp!=null?f1(d.nwp):'—'}</td></tr>`).join('');
+ $('bars').innerHTML=days.map(d=>`<div class="${d.past?'pst':''}" style="height:${Math.max(2,d.r.p*100)}%" title="${d.date}: ${f1(d.r.p*100,0)}%"></div>`).join('');const t=days.findIndex(d=>!d.past);pick(t<0?0:t)}
+async function daily(){const u='https://api.open-meteo.com/v1/forecast?latitude=11.11&longitude=7.72&timezone=Africa%2FLagos&wind_speed_unit=ms&past_days=7&forecast_days=16&daily=temperature_2m_mean,relative_humidity_2m_mean,surface_pressure_mean,dew_point_2m_mean,wind_speed_10m_mean,wind_direction_10m_dominant,precipitation_sum';
+ try{const D=(await (await fetch(u)).json()).daily,today=new Date().toISOString().slice(0,10);
+  days=D.time.map((t,i)=>{const T=D.temperature_2m_mean[i],RH=D.relative_humidity_2m_mean[i],Ph=D.surface_pressure_mean[i],Td=D.dew_point_2m_mean[i],e=6.112*Math.exp(17.67*Td/(Td+243.5)),Q=622*e/(Ph-.378*e),W=D.wind_speed_10m_mean[i]*.72,WD=D.wind_direction_10m_dominant[i];
+   return{date:t,past:t<today,T,RH,P:Ph/10,Q,W,nwp:D.precipitation_sum[i],r:model(T,RH,Ph/10,Q,W,WD)}});
+  renderDaily();$('dnote').textContent='Inputs: Open-Meteo daily means, fetched '+new Date().toLocaleString()+'.'}catch(e){$('dnote').innerHTML='<span class="err">Could not fetch live weather inputs. The manual tab still works.</span>'}}
+
+function projections(){const P=M.projections,k=Object.keys(P[0]);
+ $('ptbl').innerHTML='<tr>'+k.map(c=>`<th>${c}</th>`).join('')+'</tr>'+P.map(r=>'<tr>'+k.map(c=>`<td>${r[c]}</td>`).join('')+'</tr>').join('');
+ const base=P.map(r=>r['Annual Total Rain (mm)']/(1+r['Rainfall Anomaly (%)']/100)).reduce((a,b)=>a+b)/P.length,hz=['Near-term (2021–2040)','Mid-century (2041–2060)','Late-century (2061–2080)'],sc=['SSP2-4.5','SSP5-8.5'],col=['var(--ac)','var(--r)'];
+ const val=(s,h)=>P.find(r=>r.Scenario===s&&r['Time Horizon']===h)['Annual Total Rain (mm)'],mx=Math.max(base,...P.map(r=>r['Annual Total Rain (mm)']))*1.1,Y=v=>230-v/mx*200;
+ let g='';for(let i=0;i<=4;i++){const v=mx*i/4;g+=`<line x1="55" x2="680" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--bd)"/><text x="49" y="${Y(v)+4}" font-size="11" text-anchor="end" fill="var(--mut)">${v.toFixed(0)}</text>`}
+ hz.forEach((h,i)=>sc.forEach((s,j)=>{const x=95+i*205+j*75,v=val(s,h);g+=`<rect x="${x}" y="${Y(v)}" width="68" height="${230-Y(v)}" rx="3" fill="${col[j]}"/><text x="${x+34}" y="${Y(v)-5}" font-size="11" text-anchor="middle" fill="var(--tx)">${v.toFixed(0)}</text>`}));
+ hz.forEach((h,i)=>g+=`<text x="${95+i*205+71}" y="250" font-size="11" text-anchor="middle" fill="var(--mut)">${h}</text>`);
+ g+=`<line x1="55" x2="680" y1="${Y(base)}" y2="${Y(base)}" stroke="var(--tx)" stroke-dasharray="5 4"/><text x="680" y="${Y(base)-5}" font-size="11" text-anchor="end" fill="var(--tx)">Observed baseline ${base.toFixed(0)} mm</text><text x="60" y="14" font-size="12" fill="var(--ac)">■ SSP2-4.5</text><text x="150" y="14" font-size="12" fill="var(--r)">■ SSP5-8.5</text>`;
+ $('chart').innerHTML=`<svg viewBox="0 0 700 262"><title>Annual rainfall by horizon</title>${g}</svg>`;
+ $('chg').innerHTML=sc.map(s=>{const a=val(s,hz[0]),b=val(s,hz[2]);return`<div class="k"><b>+${f1((b/a-1)*100,0)}%</b><span>${s}: late-century vs near-term (same model)</span></div>`}).join('');
+ $('pnote').textContent='Table values come from the study pipeline (cmip6_projections_summary.csv). Negative anomalies in the near term mean the model starts below the observed baseline and recovers as warming raises moisture; the late-vs-near-term change shows the scenario-driven signal. Extreme-day anomalies are strongly negative because the calibrated model rarely reproduces intensities as high as the observed 95th percentile.'}
+function importance(){const I=M.importance,mx=Math.max(...I.map(r=>Math.max(r['Occurrence_Importance (%)'],r['Intensity_Importance (%)'])));
+ $('imp').innerHTML=I.map(r=>`<div class="hb"><div>${r.Predictor}</div><div><i style="width:${r['Occurrence_Importance (%)']/mx*100}%;background:var(--ac)"></i><i style="width:${r['Intensity_Importance (%)']/mx*100}%;background:var(--ac2)"></i><span class="note">${f1(r['Occurrence_Importance (%)'])}% · ${f1(r['Intensity_Importance (%)'])}%</span></div></div>`).join('')}
+(async()=>{
+ try{M=await (await fetch('model.json')).json()}catch(e){}
+ if(!M||!M.occurrence){$('status').innerHTML='<b class="err">model.json not found.</b> Upload model.json to the same folder as index.html (and open the site through GitHub Pages, not by double-clicking the file).';return}
+ const o=M.meta.occ,r=M.meta.int;
+ $('status').innerHTML=`<div class="g"><div class="k"><b>${f1(o.f1,3)}</b><span>Occurrence F1 (${M.meta.occ_model})</span></div><div class="k"><b>${f1(o.auc,3)}</b><span>Occurrence ROC-AUC</span></div><div class="k"><b>${f1(o.accuracy,3)}</b><span>Accuracy</span></div><div class="k"><b>${f1(o.recall,3)}</b><span>Recall (rain days caught)</span></div><div class="k"><b>${f1(r.mae,1)} mm</b><span>Intensity MAE (Extra Trees)</span></div><div class="k"><b>${f1(r.r2,3)}</b><span>Intensity R² (low skill)</span></div></div>`;
+ projections();importance();manual();daily()})();
+</script></body></html>
