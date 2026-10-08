@@ -2,7 +2,7 @@
 
 **A machine learning approach using meteorological data and climate change scenarios in Zaria, Nigeria (11.11°N, 7.72°E)**
 
-🌐 **Live site:** `https://<your-username>.github.io/<repository-name>/`
+🌐 **Live site:** `h[ttps://<your-username>.github.io/<repository-name>/](https://thekal33d.github.io/Predicting-Short-Duration-Rainfall-in-Zaria/)`
 
 A static web application that predicts daily rainfall occurrence and typical wet-day intensity for Zaria using trained machine learning models, and presents CMIP6-based projections (SSP2-4.5 and SSP5-8.5) for 2021–2080. It runs entirely in the browser: no server, database or API keys.
 
